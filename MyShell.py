@@ -45,11 +45,29 @@ class MyShell(Cmd):
 		complete = subprocess.run([args[0], args[1]])
 		self.cmdloop()
 
-	def open(self, args):
+	def inside(self, args):
 		args = shlex.split(args)
 		p = Popen(args[:-2], stdout=PIPE, stdin=PIPE, stderr=STDOUT)    
 		grep_stdout = p.communicate(input=Popen(['cat',args[-1]], stdout=PIPE, stdin=PIPE, stderr=STDOUT).communicate()[0])[0]
 		print(grep_stdout.decode())
+
+	def outside(self, args):
+		file = shlex.split(args)
+		with open(file[-1], "w") as f:
+			p = Popen([arg for arg in args.split()][:-2],stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+			grep_stdout = p.communicate()[0]
+			f.write(grep_stdout.decode())
+			f.close()
+
+	def double_outside(self, args):
+		curr = os.getcwd()
+		file = shlex.split(args)
+
+		with open(file[-1],"a") as f:
+			p = Popen([arg for arg in args.split()][:-2],stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+			grep_stdout = p.communicate()[0]
+			f.write(grep_stdout.decode())
+			f.close()
 
 	def default(self, args):
 		if '&' in args:
@@ -61,14 +79,25 @@ class MyShell(Cmd):
 				self.cmdloop()
 			if "<" in args:
 				args = args[:-1]
-				self.open(args)
+				self.inside(args)
+			elif ">>" in args:
+				args = args[:-1]
+				self.double_outside(args)
+			elif ">" in args:
+				args = args[:-1]
+				self.outside(args)
 			else:
 				complete = subprocess.run([arg for arg in args.split()])
 			self.cmdloop()
 
 		else:
 			if "<" in args:
-				self.open(args)
+				self.inside(args)
+			
+			elif ">>" in args:
+				self.double_outside(args)
+			elif ">" in args:
+				self.outside(args)
 			else:
 				complete = subprocess.run([arg for arg in args.split()])
 			
