@@ -1,12 +1,19 @@
+# name: Khrissian Joi Neuda
+# student number: 17339711
+
+"""A simple command line shell enforced on Linux"""
+
 from __future__ import print_function
 from cmd import Cmd
-import os, sys, subprocess, shlex
 from subprocess import Popen, PIPE, STDOUT
+import os, sys, subprocess, shlex
 
 WHITE = '\033[37;0m'
 RED = '\033[31;1m'
-class MyShell(Cmd):
+CYAN = '\033[36;1m'
+BOLD = '\033[37;1m'
 
+class MyShell(Cmd):
 	def do_cd(self, args):
 		if len(args) == 0:
 			cwd = os.getcwd()
@@ -30,11 +37,10 @@ class MyShell(Cmd):
 	def do_environ(self, args):
 		environ = os.environ
 		for key,value in environ.items():
-			print(key +":"+ value + '\n')
+			print(RED + key + RED + WHITE +" - " + value + WHITE + '\n')
 
 	def do_echo(self, args):
 		print(args)
-
 
 	def do_pause(self, args):
 		press = input("Please press Enter to continue")
@@ -47,7 +53,7 @@ class MyShell(Cmd):
 		raise SystemExit
 
 	def theprompt(self):
-		prompt.prompt = os.getcwd() + '/myshell>'
+		prompt.prompt = CYAN + os.getcwd() + CYAN + '/myshell>' + WHITE
 	
 	def file(self):
 		with open(sys.argv[1], 'r') as f:
@@ -55,8 +61,24 @@ class MyShell(Cmd):
 			prompt.cmdqueue.append('quit')
 
 
-	def amperstand(self, args):
-		complete = subprocess.run([args[0], args[1]])
+	def background(self, args):
+		try:
+				pid = os.fork()
+				if pid > 0:
+					self.cmdloop()
+		except OSError:
+			self.cmdloop()
+		if "<" in args:
+			args = args[:-1]
+			self.inside(args)
+		elif ">>" in args:
+			args = args[:-1]
+			self.double_outside(args)
+		elif ">" in args:
+			args = args[:-1]
+			self.outside(args)
+		else:
+			complete = subprocess.run([arg for arg in args.split()])
 		self.cmdloop()
 
 	def inside(self, args):
@@ -74,6 +96,7 @@ class MyShell(Cmd):
 			f.close()
 
 	def double_outside(self, args):
+		""">> redirection token, appends to the output file if file exists in the current directory, otherwise creates output file if file does not exist in the current directory."""
 		curr = os.getcwd()
 		file = shlex.split(args)
 
@@ -85,56 +108,49 @@ class MyShell(Cmd):
 
 	def default(self, args):
 		if '&' in args:
-			try:
-				pid = os.fork()
-				if pid > 0:
-					self.cmdloop()
-			except OSError:
-				self.cmdloop()
-			if "<" in args:
-				args = args[:-1]
-				self.inside(args)
-			elif ">>" in args:
-				args = args[:-1]
-				self.double_outside(args)
-			elif ">" in args:
-				args = args[:-1]
-				self.outside(args)
-			else:
-				complete = subprocess.run([arg for arg in args.split()])
-			self.cmdloop()
-
+			self.background(args)
 		else:
-			if "<" in args:
+			if (">"in args) and ("<" in args):
+				pass
+			elif "<" in args:
 				self.inside(args)
-			
 			elif ">>" in args:
 				self.double_outside(args)
 			elif ">" in args:
 				self.outside(args)
-			else:
+			elif len(args.split()) <= 2:
+				print("h")
 				complete = subprocess.run([arg for arg in args.split()])
+			else:
+				files = args.split()
+				programmename = files[0]
+				files = files[1:]
+				length = len(files)
+				for i in range(0,len(files)):
+					complete = subprocess.run([programmename, files[i]])
+
 	
 	def help_echo(self):
-		print(RED+ "echo <comment>" +RED + WHITE +" - echo command displays <comment> on the display followed by a new line"+WHITE)
+		print(RED+ "ECHO <comment>" +RED + WHITE +" - echo command displays <comment> on the display followed by a new line"+WHITE)
 	
 	def help_environ(self):
-		print(RED+"environ"+ RED + WHITE + " - environ command list all the environment strings" + WHITE)
+		print(RED+"ENVIRON"+ RED + WHITE + " - environ command list all the environment strings" + WHITE)
 
 	def help_clr(self):
-		print(RED + "clr" + RED + WHITE + " - clears the shell" + WHITE)
+		print(RED + "CLR" + RED + WHITE + " - clears the shell" + WHITE)
 
 	def help_quit(self):
-		print(RED + "quit" + RED + WHITE + " - quit command raises the SystemExist and stops the execution of this script." + WHITE)
+		print(RED + "QUIT" + RED + WHITE + " - quit command raises the SystemExist and stops the execution of this script." + WHITE)
 
 	def help_cd(self):
-		print(RED + "cd <directory>" + RED + WHITE + " - cd command changes the current default directory to <directory>. If the <directory> argument is not present, report the current directory. If the directory does not exist an appropriate error should be reported." + WHITE)
+		print(RED + "CD <directory>" + RED + WHITE + " - cd command changes the current default directory to <directory>. If the <directory> argument is not present, report the current directory. If the directory does not exist an appropriate error should be reported." + WHITE)
 
 	def help_pause(self):
-		print(RED + "pause" + RED + WHITE + " - pause command suspends the operation of the shell until 'Enter' is pressed by the user." + WHITE)
+		print(RED + "PAUSE" + RED + WHITE + " - pause command suspends the operation of the shell until 'Enter' is pressed by the user." + WHITE)
 
 	def help_dir(self):
-		print(RED + "dir <directory>" + RED + WHITE + " - dir command lists the contents of directory <directory>." + WHITE)
+		print(RED + "DIR <directory>" + RED + WHITE + " - dir command lists the contents of directory <directory>." + WHITE)
+
 if __name__ == '__main__':
 	prompt = MyShell()
 	if len(sys.argv) > 1:
