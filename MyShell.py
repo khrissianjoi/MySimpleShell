@@ -2,6 +2,9 @@ from __future__ import print_function
 from cmd import Cmd
 import os, sys, subprocess, shlex
 from subprocess import Popen, PIPE, STDOUT
+
+WHITE = '\033[37;0m'
+RED = '\033[31;1m'
 class MyShell(Cmd):
 
 	def do_cd(self, args):
@@ -15,6 +18,15 @@ class MyShell(Cmd):
 			except:
 				print('cd: no such file or directory: ' + args)
 
+	def do_clr(self, args):
+		os.system('clear')
+
+	def do_dir(self, args):
+		path = '.'
+		files = os.listdir(path)
+		for name in files:
+			print(name)
+
 	def do_environ(self, args):
 		environ = os.environ
 		for key,value in environ.items():
@@ -23,8 +35,11 @@ class MyShell(Cmd):
 	def do_echo(self, args):
 		print(args)
 
+
 	def do_pause(self, args):
-		os.system("read -p 'Press Enter to continue...' var");
+		press = input("Please press Enter to continue")
+		while press != "":
+			press = input("Please press Enter to continue")
 
 	def do_quit(self, args):
 		"""Quits the program"""
@@ -39,7 +54,6 @@ class MyShell(Cmd):
 			prompt.cmdqueue.extend([line.strip() for line in f.readlines()])
 			prompt.cmdqueue.append('quit')
 
-	# def do_help(self, args):
 
 	def amperstand(self, args):
 		complete = subprocess.run([args[0], args[1]])
@@ -100,8 +114,27 @@ class MyShell(Cmd):
 				self.outside(args)
 			else:
 				complete = subprocess.run([arg for arg in args.split()])
-			
+	
+	def help_echo(self):
+		print(RED+ "echo <comment>" +RED + WHITE +" - echo command displays <comment> on the display followed by a new line"+WHITE)
+	
+	def help_environ(self):
+		print(RED+"environ"+ RED + WHITE + " - environ command list all the environment strings" + WHITE)
 
+	def help_clr(self):
+		print(RED + "clr" + RED + WHITE + " - clears the shell" + WHITE)
+
+	def help_quit(self):
+		print(RED + "quit" + RED + WHITE + " - quit command raises the SystemExist and stops the execution of this script." + WHITE)
+
+	def help_cd(self):
+		print(RED + "cd <directory>" + RED + WHITE + " - cd command changes the current default directory to <directory>. If the <directory> argument is not present, report the current directory. If the directory does not exist an appropriate error should be reported." + WHITE)
+
+	def help_pause(self):
+		print(RED + "pause" + RED + WHITE + " - pause command suspends the operation of the shell until 'Enter' is pressed by the user." + WHITE)
+
+	def help_dir(self):
+		print(RED + "dir <directory>" + RED + WHITE + " - dir command lists the contents of directory <directory>." + WHITE)
 if __name__ == '__main__':
 	prompt = MyShell()
 	if len(sys.argv) > 1:
