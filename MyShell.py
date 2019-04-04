@@ -25,19 +25,33 @@ class MyShell(Cmd):
 			except:
 				print('cd: no such file or directory: ' + args)
 
+		self.theprompt()
+
 	def do_clr(self, args):
 		os.system('clear')
 
 	def do_dir(self, args):
-		path = '.'
-		files = os.listdir(path)
-		for name in files:
-			print(name)
+		if '>' not in args:
+			path = '.'
+			files = os.listdir(path)
+			for name in files:
+				print(name)
+
+		else:
+			self.default('dir ' + args)
 
 	def do_environ(self, args):
-		environ = os.environ
-		for key,value in environ.items():
-			print(RED + key + RED + WHITE +" - " + value + WHITE + '\n')
+		if '>' in args:
+			out_file = args.split()[-1]
+			with open(out_file, 'w') as f:
+				environ = os.environ
+				for key,value in environ.items():
+					f.write(key + "=" + value + "\n")
+				f.close()
+		else:
+			environ = os.environ
+			for key,value in environ.items():
+				print(RED + key + RED + WHITE +"=" + value + WHITE + '\n')
 
 	def do_echo(self, args):
 		print(args)
@@ -53,22 +67,17 @@ class MyShell(Cmd):
 		raise SystemExit
 
 	def theprompt(self):
-		prompt.prompt = CYAN + os.getcwd() + CYAN + '/myshell>' + WHITE
+		self.prompt = CYAN + os.getcwd() + '/myshell>' + WHITE
 	
 	def file(self):
 		with open(sys.argv[1], 'r') as f:
 			prompt.cmdqueue.extend([line.strip() for line in f.readlines()])
 			prompt.cmdqueue.append('quit')
 
-
 	def background(self, args):
-		try:
-				pid = os.fork()
-				if pid > 0:
-					self.cmdloop()
-		except OSError:
-			self.cmdloop()
-		if "<" in args:
+		if "<" in args and ">" in args:
+			self.inside_outside(args)
+		elif "<" in args:
 			args = args[:-1]
 			self.inside(args)
 		elif ">>" in args:
@@ -78,57 +87,92 @@ class MyShell(Cmd):
 			args = args[:-1]
 			self.outside(args)
 		else:
-			complete = subprocess.run([arg for arg in args.split()])
+			complete = Popen([arg for arg in args.split()])
 		self.cmdloop()
 
-	def inside(self, args):
-		args = shlex.split(args)
-		p = Popen(args[:-2], stdout=PIPE, stdin=PIPE, stderr=STDOUT)    
-		grep_stdout = p.communicate(input=Popen(['cat',args[-1]], stdout=PIPE, stdin=PIPE, stderr=STDOUT).communicate()[0])[0]
+	def stdin_file(self, args, file):
+		""" < stdin file (input redirection)"""
+		p = Popen([args[0], args[1]], stdout=PIPE, stdin=PIPE, stderr=STDOUT)    
+		grep_stdout = p.communicate(input=Popen(['cat', file], stdout=PIPE, stdin=PIPE, stderr=STDOUT).communicate()[0])[0]
 		print(grep_stdout.decode())
+		if len(args) - 1 > 1:
+			current = args[0:1] + args[2:]
+			self.default(" ".join(current))
 
-	def outside(self, args):
-		file = shlex.split(args)
-		with open(file[-1], "w") as f:
-			p = Popen([arg for arg in args.split()][:-2],stdout=PIPE, stdin=PIPE, stderr=STDOUT)
-			grep_stdout = p.communicate()[0]
-			f.write(grep_stdout.decode())
-			f.close()
+		return p
 
-	def double_outside(self, args):
+	def overwrite_file(self, args, file):
+		""" > stdout file (output redirection)"""
+		with open(file, "w") as f:
+			for i in range(1,len(args)):
+				p = Popen([args[0], args[i]],stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+				grep_stdout = p.communicate()[0]
+				f.write(grep_stdout.decode())
+		f.close()
+
+		return p
+
+	def append_file(self, args, file): 
 		""">> redirection token, appends to the output file if file exists in the current directory, otherwise creates output file if file does not exist in the current directory."""
-		curr = os.getcwd()
-		file = shlex.split(args)
 
-		with open(file[-1],"a") as f:
-			p = Popen([arg for arg in args.split()][:-2],stdout=PIPE, stdin=PIPE, stderr=STDOUT)
-			grep_stdout = p.communicate()[0]
-			f.write(grep_stdout.decode())
-			f.close()
+		with open(file,"a") as f:
+			for i in range(1,len(args)):
+				p = Popen([args[0], args[i]],stdout=PIPE, stdin=PIPE, stderr=STDOUT)
+				grep_stdout = p.communicate()[0]
+				f.write(grep_stdout.decode())
+		f.close()
+		return p
 
+	def stdin_stdout(self, args):
+		args = shlex.split(args)
+		program = args[0]
+
+		index_out = args.index(">")+1
+		index_in = args.index("<")+1
+		out = args[index_out]
+		in_ = args[index_in]
+
+		with open(out, 'w') as f:
+			for i in range(1,min(index_out-1, index_in-1)):
+				p = Popen([program, args[i]], stdout=PIPE, stdin=PIPE, stderr=STDOUT)    
+				grep_stdout = p.communicate(input=Popen(['cat',in_], stdout=PIPE, stdin=PIPE, stderr=STDOUT).communicate()[0])[0]
+				f.write(grep_stdout.decode())
+		f.close()
+		return p
+		
 	def default(self, args):
 		if '&' in args:
 			self.background(args)
 		else:
 			if (">"in args) and ("<" in args):
-				pass
+				p = self.stdin_stdout(args)
+				p.wait()
 			elif "<" in args:
-				self.inside(args)
+				args = args.split()
+				index_in = args.index("<")
+				file = args[index_in + 1]
+				p = self.stdin_file(args[:index_in], file)
+				p.wait()
 			elif ">>" in args:
-				self.double_outside(args)
+				args = args.split()
+				index_append = args.index(">>")
+				file = args[index_append + 1]
+				p = self.append_file(args[:index_append], file)
+				p.wait()
 			elif ">" in args:
-				self.outside(args)
-			elif len(args.split()) <= 2:
-				print("h")
-				complete = subprocess.run([arg for arg in args.split()])
+				args = args.split()
+				index_out = args.index(">")
+				file = args[index_out + 1]
+				p = self.overwrite_file(args[:index_out], file)
+				p.wait()
 			else:
 				files = args.split()
 				programmename = files[0]
 				files = files[1:]
 				length = len(files)
 				for i in range(0,len(files)):
-					complete = subprocess.run([programmename, files[i]])
-
+					p = Popen([programmename, files[i]])
+					p.wait()
 	
 	def help_echo(self):
 		print(RED+ "ECHO <comment>" +RED + WHITE +" - echo command displays <comment> on the display followed by a new line"+WHITE)
