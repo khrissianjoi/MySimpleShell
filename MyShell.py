@@ -15,6 +15,7 @@ BOLD = '\033[37;1m'
 
 class MyShell(Cmd):
 	def do_cd(self, args):
+		"""Changes the current directory to the argument given <directory>, if not given, error is given."""
 		if len(args) == 0:
 			cwd = os.getcwd()
 			print(cwd)
@@ -24,39 +25,56 @@ class MyShell(Cmd):
 				os.chdir(path)
 			except:
 				print('cd: no such file or directory: ' + args)
-
+		"""updates the pathname of the shell environment"""
 		self.theprompt()
 
 	def do_clr(self, args):
+		"""clears the screen"""
 		os.system('clear')
 
 	def do_dir(self, args):
+		"""Lists the contents of the current directory"""
 		if '>' not in args:
 			path = '.'
 			files = os.listdir(path)
 			for name in files:
 				print(name)
-
 		else:
+			"""call default function if stdout file '>' is given"""
 			self.default('dir ' + args)
 
 	def do_environ(self, args):
+		"""Environ lists out the environemnt strings"""
+		"""given as a dictionary"""
+		environ = os.environ
 		if '>' in args:
+			"""if stdout file '>' is given"""
 			out_file = args.split()[-1]
 			with open(out_file, 'w') as f:
-				environ = os.environ
 				for key,value in environ.items():
 					f.write(key + "=" + value + "\n")
 				f.close()
 		else:
-			environ = os.environ
+			"""prints out environment strings"""
 			for key,value in environ.items():
 				print(RED + key + RED + WHITE +"=" + value + WHITE + '\n')
 
 	def do_echo(self, args):
-		print(args)
+		"""display comment/args"""
+		if ">" in args:
+			"""stout file is given '>', writes comment/args in file"""
+			args = args.split(">")
+			file = args[-1].strip()
+			content = args[0].strip()
+			with open(file, 'w') as f:
+				f.write(content)
+			f.close()
+		else:
+			"""prints out comment/args"""
+			print(args)
 
 	def do_pause(self, args):
+		""" Pauses operation until 'Enter' is pressed """
 		press = input("Please press Enter to continue")
 		while press != "":
 			press = input("Please press Enter to continue")
@@ -67,27 +85,18 @@ class MyShell(Cmd):
 		raise SystemExit
 
 	def theprompt(self):
+		"""shell environment path name shell=<pathname>/myshell>"""
 		self.prompt = CYAN + os.getcwd() + '/myshell>' + WHITE
 	
 	def file(self):
+		"""shell command line input from file(myshell batchfile), the shell exits after reading the file and running each command that the file contains"""
 		with open(sys.argv[1], 'r') as f:
 			prompt.cmdqueue.extend([line.strip() for line in f.readlines()])
 			prompt.cmdqueue.append('quit')
 
 	def background(self, args):
-		if "<" in args and ">" in args:
-			self.inside_outside(args)
-		elif "<" in args:
-			args = args[:-1]
-			self.inside(args)
-		elif ">>" in args:
-			args = args[:-1]
-			self.double_outside(args)
-		elif ">" in args:
-			args = args[:-1]
-			self.outside(args)
-		else:
-			complete = Popen([arg for arg in args.split()])
+		"""background processes (&), after launching the process(es), cmdloop() is called so user can return to the command line prompt"""
+		complete = Popen([arg for arg in args.split()])
 		self.cmdloop()
 
 	def stdin_file(self, args, file):
