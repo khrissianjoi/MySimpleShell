@@ -89,11 +89,17 @@ class MyShell(Cmd):
 					eval(v)
 					self.do_pause('pause', True)
 		else:
-			print("\n")
-			"""MyShellHelp class is called, which contains help command documents"""
-			call = 'MyShellHelp.help_' + args + '()'
-			eval(call)
-			print("\n")
+			check = args.split()[0]
+			if check in help_dic:
+				"""if help <command> is given where <command> is a valid MyShell command"""
+				print("\n")
+				"""MyShellHelp class is called, which contains help command documents"""
+				call = 'MyShellHelp.help_' + args + '()'
+				eval(call)
+				print("\n")
+			else:
+				print("Name " + check + " is not defined")
+				self.cmdloop()
 			
 	def do_pause(self, args, help=False):
 		""" Pauses operation until 'Enter' is pressed """
@@ -102,7 +108,8 @@ class MyShell(Cmd):
 			while press != "":
 				press = input("Please press Enter to continue")
 		elif help == True:
-			"""Used to pause help command documentation printing, user is asked to press Enter to continue seeing more of the help documentation, or Space to exit and return to MyShell"""
+			"""Used to pause help command documentation printing, user is asked to press Enter"""
+			""" to continue seeing more of the help documentation, or Space to exit and return to MyShell"""
 			press = input()
 			if press == " ":
 				print("Exiting help")
@@ -118,13 +125,15 @@ class MyShell(Cmd):
 		self.prompt = CYAN + os.getcwd() + '/myshell>' + WHITE
 	
 	def batchfile(self):
-		"""shell command line input from file(myshell batchfile), the shell exits after reading the file and running each command that the file contains"""
+		"""shell command line input from file(myshell batchfile)"""
+		"""the shell exits after reading the file and running each command that the file contains"""
 		with open(sys.argv[1], 'r') as f:
 			prompt.cmdqueue.extend([line.strip() for line in f.readlines()])
 			prompt.cmdqueue.append('quit')
 
 	def background(self, args):
-		"""background processes (&), after launching the process(es), cmdloop() is called so user can return to the command line prompt"""
+		"""background processes (&), after launching the process(es)"""
+		"""cmdloop() is called so user can return to the command line prompt"""
 		complete = Popen([arg for arg in args.split()])
 		self.cmdloop()
 
@@ -150,7 +159,8 @@ class MyShell(Cmd):
 			return p
 
 	def append_file(self, args, file): 
-		""">> redirection token, appends to the output file if file exists in the current directory, otherwise creates output file if file does not exist in the current directory."""
+		""">> redirection token, appends to the output file if file exists in the current directory,"""
+		"""otherwise creates output file if file does not exist in the current directory."""
 
 		with open(file,"a") as f:
 			for i in range(1,len(args)):
@@ -161,6 +171,8 @@ class MyShell(Cmd):
 		return p
 
 	def stdin_stdout(self, args):
+		"""> stdin file and < stdout file, reading input from a (< redirectioninput)"""
+		"""file that is given, then outputing the file to the (> redirection) file"""
 		args = shlex.split(args)
 		program = args[0]
 
@@ -179,27 +191,35 @@ class MyShell(Cmd):
 		
 	def default(self, args):
 		if '&' in args:
+			"""if the user input contains '&' (amperstand), program is launched"""
+			"""as a background process and return to MyShell command line prompt"""
 			self.background(args)
 		else:
+			"""checks if the users input contains a redirection token"""
 			if (">"in args) and ("<" in args):
+				"""stdin and stdout, output and input redirection"""
 				p = self.stdin_stdout(args)
 				p.wait()
 			elif "<" in args:
+				"""stdin, input redirection"""
 				args = args.split()
 				index_in = args.index("<")
 				file = args[index_in + 1]
 				p = self.stdin_file(args[:index_in], file)
 			elif ">>" in args:
+				"""output redirection, append to file if exists"""
 				args = args.split()
 				index_append = args.index(">>")
 				file = args[index_append + 1]
 				p = self.append_file(args[:index_append], file)
 			elif ">" in args:
+				"""stdout, output redirection"""
 				args = args.split()
 				index_out = args.index(">")
 				file = args[index_out + 1]
 				p = self.overwrite_file(args[:index_out], file)
 			else:
+				"""the process will execute and run"""
 				files = args.split()
 				programmename = files[0]
 				files = files[1:]
@@ -207,6 +227,7 @@ class MyShell(Cmd):
 				for i in range(0,len(files)):
 					p = Popen([programmename, files[i]])
 					p.wait()
+			"""wait for the process to end before returning to command line prompt"""
 			p.wait()
 	
 if __name__ == '__main__':
