@@ -1,0 +1,8 @@
+cd testfolder
+clr
+dir
+environ
+echo
+help
+pause
+quit
