@@ -6,6 +6,7 @@
 from __future__ import print_function
 from cmd import Cmd
 from subprocess import Popen, PIPE, STDOUT
+from MyHelp import MyShellHelp, help_dic
 import os, sys, subprocess, shlex
 
 WHITE = '\033[37;0m'
@@ -34,14 +35,18 @@ class MyShell(Cmd):
 
 	def do_dir(self, args):
 		"""Lists the contents of the current directory"""
+		path = '.'
+		files = os.listdir(path)
 		if '>' not in args:
-			path = '.'
-			files = os.listdir(path)
 			for name in files:
 				print(name)
 		else:
 			"""call default function if stdout file '>' is given"""
-			self.default('dir ' + args)
+			args = args.split()
+			with open(args[-1],'w') as f:
+				for name in files:
+					f.write(name+"\n")
+				f.close()
 
 	def do_environ(self, args):
 		"""Environ lists out the environemnt strings"""
@@ -73,11 +78,35 @@ class MyShell(Cmd):
 			"""prints out comment/args"""
 			print(args)
 
-	def do_pause(self, args):
+	def do_help(self, args=''):
+		if args == '':
+			print("Documented commands (type help <topic>):\n========================================\ncd  clr  dir  echo  environ  help  pause  quit")
+			print('\n')
+			press = input("Please press Enter to view help commands and space to exit and return to MyShell")
+			print("\n")
+			if press == "":
+				for k,v in help_dic.items():
+					eval(v)
+					self.do_pause('pause', True)
+		else:
+			print("\n")
+			"""MyShellHelp class is called, which contains help command documents"""
+			call = 'MyShellHelp.help_' + args + '()'
+			eval(call)
+			print("\n")
+			
+	def do_pause(self, args, help=False):
 		""" Pauses operation until 'Enter' is pressed """
-		press = input("Please press Enter to continue")
-		while press != "":
-			press = input("Please press Enter to continue")
+		if help == False:
+			press = input("Paused, please press Enter to continue")
+			while press != "":
+				press = input("Please press Enter to continue")
+		elif help == True:
+			"""Used to pause help command documentation printing, user is asked to press Enter to continue seeing more of the help documentation, or Space to exit and return to MyShell"""
+			press = input()
+			if press == " ":
+				print("Exiting help")
+				self.cmdloop()
 
 	def do_quit(self, args):
 		"""Quits the program"""
@@ -88,7 +117,7 @@ class MyShell(Cmd):
 		"""shell environment path name shell=<pathname>/myshell>"""
 		self.prompt = CYAN + os.getcwd() + '/myshell>' + WHITE
 	
-	def file(self):
+	def batchfile(self):
 		"""shell command line input from file(myshell batchfile), the shell exits after reading the file and running each command that the file contains"""
 		with open(sys.argv[1], 'r') as f:
 			prompt.cmdqueue.extend([line.strip() for line in f.readlines()])
@@ -117,9 +146,8 @@ class MyShell(Cmd):
 				p = Popen([args[0], args[i]],stdout=PIPE, stdin=PIPE, stderr=STDOUT)
 				grep_stdout = p.communicate()[0]
 				f.write(grep_stdout.decode())
-		f.close()
-
-		return p
+			f.close()
+			return p
 
 	def append_file(self, args, file): 
 		""">> redirection token, appends to the output file if file exists in the current directory, otherwise creates output file if file does not exist in the current directory."""
@@ -161,19 +189,17 @@ class MyShell(Cmd):
 				index_in = args.index("<")
 				file = args[index_in + 1]
 				p = self.stdin_file(args[:index_in], file)
-				p.wait()
 			elif ">>" in args:
 				args = args.split()
 				index_append = args.index(">>")
 				file = args[index_append + 1]
 				p = self.append_file(args[:index_append], file)
-				p.wait()
 			elif ">" in args:
+				print("h")
 				args = args.split()
 				index_out = args.index(">")
 				file = args[index_out + 1]
 				p = self.overwrite_file(args[:index_out], file)
-				p.wait()
 			else:
 				files = args.split()
 				programmename = files[0]
@@ -182,32 +208,12 @@ class MyShell(Cmd):
 				for i in range(0,len(files)):
 					p = Popen([programmename, files[i]])
 					p.wait()
+			p.wait()
 	
-	def help_echo(self):
-		print(RED+ "ECHO <comment>" +RED + WHITE +" - echo command displays <comment> on the display followed by a new line"+WHITE)
-	
-	def help_environ(self):
-		print(RED+"ENVIRON"+ RED + WHITE + " - environ command list all the environment strings" + WHITE)
-
-	def help_clr(self):
-		print(RED + "CLR" + RED + WHITE + " - clears the shell" + WHITE)
-
-	def help_quit(self):
-		print(RED + "QUIT" + RED + WHITE + " - quit command raises the SystemExist and stops the execution of this script." + WHITE)
-
-	def help_cd(self):
-		print(RED + "CD <directory>" + RED + WHITE + " - cd command changes the current default directory to <directory>. If the <directory> argument is not present, report the current directory. If the directory does not exist an appropriate error should be reported." + WHITE)
-
-	def help_pause(self):
-		print(RED + "PAUSE" + RED + WHITE + " - pause command suspends the operation of the shell until 'Enter' is pressed by the user." + WHITE)
-
-	def help_dir(self):
-		print(RED + "DIR <directory>" + RED + WHITE + " - dir command lists the contents of directory <directory>." + WHITE)
-
 if __name__ == '__main__':
 	prompt = MyShell()
 	if len(sys.argv) > 1:
-		prompt.file()
+		prompt.batchfile()
 	prompt.theprompt()
 	print('Starting MyShell...')
 	prompt.cmdloop()
