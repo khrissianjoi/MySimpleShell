@@ -195,7 +195,6 @@ class MyShell(Cmd):
 				file = args[index_append + 1]
 				p = self.append_file(args[:index_append], file)
 			elif ">" in args:
-				print("h")
 				args = args.split()
 				index_out = args.index(">")
 				file = args[index_out + 1]
