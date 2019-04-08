@@ -90,16 +90,17 @@ class MyShell(Cmd):
 					self.do_pause('pause', True)
 		else:
 			check = args.split()[0]
+			if '(' and ')' in check:
+				check = check[1:-1]
 			if check in help_dic:
 				"""if help <command> is given where <command> is a valid MyShell command"""
 				print("\n")
 				"""MyShellHelp class is called, which contains help command documents"""
-				call = 'MyShellHelp.help_' + args + '()'
+				call = 'MyShellHelp.help_' + check + '()'
 				eval(call)
 				print("\n")
 			else:
 				print("Name " + check + " is not defined")
-				self.cmdloop()
 			
 	def do_pause(self, args, help=False):
 		""" Pauses operation until 'Enter' is pressed """
@@ -135,7 +136,7 @@ class MyShell(Cmd):
 		"""background processes (&), after launching the process(es)"""
 		"""cmdloop() is called so user can return to the command line prompt"""
 		complete = Popen([arg for arg in args.split()])
-		self.cmdloop()
+		# self.cmdloop()
 
 	def stdin_file(self, args, file):
 		""" < stdin file (input redirection)"""
@@ -196,6 +197,7 @@ class MyShell(Cmd):
 			self.background(args)
 		else:
 			"""checks if the users input contains a redirection token"""
+			"""wait for the process to end before returning to command line prompt"""
 			if (">"in args) and ("<" in args):
 				"""stdin and stdout, output and input redirection"""
 				p = self.stdin_stdout(args)
@@ -227,8 +229,6 @@ class MyShell(Cmd):
 				for i in range(0,len(files)):
 					p = Popen([programmename, files[i]])
 					p.wait()
-			"""wait for the process to end before returning to command line prompt"""
-			p.wait()
 	
 if __name__ == '__main__':
 	prompt = MyShell()
