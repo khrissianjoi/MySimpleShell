@@ -157,7 +157,7 @@ class MyShell(Cmd):
 				grep_stdout = p.communicate()[0]
 				f.write(grep_stdout.decode())
 			f.close()
-			return p
+		return p
 
 	def append_file(self, args, file): 
 		""">> redirection token, appends to the output file if file exists in the current directory,"""
@@ -168,7 +168,7 @@ class MyShell(Cmd):
 				p = Popen([args[0], args[i]],stdout=PIPE, stdin=PIPE, stderr=STDOUT)
 				grep_stdout = p.communicate()[0]
 				f.write(grep_stdout.decode())
-		f.close()
+			f.close()
 		return p
 
 	def stdin_stdout(self, args):
