@@ -6,15 +6,27 @@
 from __future__ import print_function
 from cmd import Cmd
 from subprocess import Popen, PIPE, STDOUT
-from MyHelp import MyShellHelp, help_dic
+from MyHelp import MyHelp, help_dic
+from MyRedirection import MyRedirection
 import os, sys, subprocess, shlex
+import time
+
+
 
 WHITE = '\033[37;0m'
 RED = '\033[31;1m'
 CYAN = '\033[36;1m'
 BOLD = '\033[37;1m'
 
+
+"""io mode as keys, providing token and necessary function"""
+io = {
+	'a':('>>', 'MyRedirection.append_file'),
+	'w': ('>', 'MyRedirection.overwrite_file'),
+	'r': ('<', 'MyRedirection.stdin_file')
+	}
 class MyShell(Cmd):
+
 	def do_cd(self, args):
 		"""Changes the current directory to the argument given <directory>, if not given, error is given."""
 		if len(args) == 0:
@@ -37,13 +49,14 @@ class MyShell(Cmd):
 		"""Lists the contents of the current directory"""
 		path = '.'
 		files = os.listdir(path)
-		if '>' not in args:
+		mode = self.io_parse(args)	
+		if not mode:
 			for name in files:
 				print(name)
 		else:
-			"""call default function if stdout file '>' is given"""
+			"""call default function if stdout file '>' is given"""	
 			args = args.split()
-			with open(args[-1],'w') as f:
+			with open(args[-1],mode) as f:
 				for name in files:
 					f.write(name+"\n")
 				f.close()
@@ -52,10 +65,10 @@ class MyShell(Cmd):
 		"""Environ lists out the environemnt strings"""
 		"""given as a dictionary"""
 		environ = os.environ
-		if '>' in args:
-			"""if stdout file '>' is given"""
+		mode = self.io_parse(args)
+		if mode:
 			out_file = args.split()[-1]
-			with open(out_file, 'w') as f:
+			with open(out_file, mode) as f:
 				for key,value in environ.items():
 					f.write(key + "=" + value + "\n")
 				f.close()
@@ -66,12 +79,15 @@ class MyShell(Cmd):
 
 	def do_echo(self, args):
 		"""display comment/args"""
-		if ">" in args:
-			"""stout file is given '>', writes comment/args in file"""
-			args = args.split(">")
+		mode = self.io_parse(args)
+		if mode:
+			"""stout file is given '>' or '>>', writes comment/args in file"""
+			token = io[mode][0]
+			args = args.split(token)
 			file = args[-1].strip()
 			content = args[0].strip()
-			with open(file, 'w') as f:
+			print(content)
+			with open(file, mode) as f:
 				f.write(content)
 			f.close()
 		else:
@@ -79,6 +95,7 @@ class MyShell(Cmd):
 			print(args)
 
 	def do_help(self, args=''):
+		mode = self.io_parse(args)
 		if args == '':
 			print("Documented commands (type help <topic>):\n========================================\ncd  clr  dir  echo  environ  help  pause  quit")
 			print('\n')
@@ -86,8 +103,20 @@ class MyShell(Cmd):
 			print("\n")
 			if press == "":
 				for k,v in help_dic.items():
-					eval(v)
+					eval(v[0])
 					self.do_pause('pause', True)
+				print("All commands have been viewed")
+				time.sleep(1)
+				print("Exiting help")
+				time.sleep(1)
+		elif mode:
+			mode = self.io_parse(args)
+			args = args.split()
+			with open(args[-1], mode) as f:
+				for k,v in help_dic.items():
+					view = v[1]
+					f.write(view+"\n")
+			f.close()
 		else:
 			check = args.split()[0]
 			if '(' and ')' in check:
@@ -96,7 +125,7 @@ class MyShell(Cmd):
 				"""if help <command> is given where <command> is a valid MyShell command"""
 				print("\n")
 				"""MyShellHelp class is called, which contains help command documents"""
-				call = 'MyShellHelp.help_' + check + '()'
+				call = 'MyHelp.help_' + check + '()'
 				eval(call)
 				print("\n")
 			else:
@@ -121,6 +150,20 @@ class MyShell(Cmd):
 		print('Quitting')
 		raise SystemExit
 
+	def io_parse(self, args):
+		"""this differentiate as to what redirection token (ie. '>', '>>' or '<') is given"""
+		"""or if there was any given"""
+		"""the correct mode is then returned"""
+		if '>' in args and '<' in args:
+			return 'both'
+		if '>>' in args:
+			return 'a'
+		elif '>' in args:
+			return 'w'
+		elif '<' in args:
+			return 'r'
+		return None
+
 	def theprompt(self):
 		"""shell environment path name shell=<pathname>/myshell>"""
 		self.prompt = CYAN + os.getcwd() + '/myshell>' + WHITE
@@ -136,59 +179,6 @@ class MyShell(Cmd):
 		"""background processes (&), after launching the process(es)"""
 		"""cmdloop() is called so user can return to the command line prompt"""
 		complete = Popen([arg for arg in args.split()])
-		# self.cmdloop()
-
-	def stdin_file(self, args, file):
-		""" < stdin file (input redirection)"""
-		p = Popen([args[0], args[1]], stdout=PIPE, stdin=PIPE, stderr=STDOUT)    
-		grep_stdout = p.communicate(input=Popen(['cat', file], stdout=PIPE, stdin=PIPE, stderr=STDOUT).communicate()[0])[0]
-		print(grep_stdout.decode())
-		if len(args) - 1 > 1:
-			current = args[0:1] + args[2:]
-			self.default(" ".join(current))
-
-		return p
-
-	def overwrite_file(self, args, file):
-		""" > stdout file (output redirection)"""
-		with open(file, "w") as f:
-			for i in range(1,len(args)):
-				p = Popen([args[0], args[i]],stdout=PIPE, stdin=PIPE, stderr=STDOUT)
-				grep_stdout = p.communicate()[0]
-				f.write(grep_stdout.decode())
-			f.close()
-		return p
-
-	def append_file(self, args, file): 
-		""">> redirection token, appends to the output file if file exists in the current directory,"""
-		"""otherwise creates output file if file does not exist in the current directory."""
-
-		with open(file,"a") as f:
-			for i in range(1,len(args)):
-				p = Popen([args[0], args[i]],stdout=PIPE, stdin=PIPE, stderr=STDOUT)
-				grep_stdout = p.communicate()[0]
-				f.write(grep_stdout.decode())
-			f.close()
-		return p
-
-	def stdin_stdout(self, args):
-		"""> stdin file and < stdout file, reading input from a (< redirectioninput)"""
-		"""file that is given, then outputing the file to the (> redirection) file"""
-		args = shlex.split(args)
-		program = args[0]
-
-		index_out = args.index(">")+1
-		index_in = args.index("<")+1
-		out = args[index_out]
-		in_ = args[index_in]
-
-		with open(out, 'w') as f:
-			for i in range(1,min(index_out-1, index_in-1)):
-				p = Popen([program, args[i]], stdout=PIPE, stdin=PIPE, stderr=STDOUT)    
-				grep_stdout = p.communicate(input=Popen(['cat',in_], stdout=PIPE, stdin=PIPE, stderr=STDOUT).communicate()[0])[0]
-				f.write(grep_stdout.decode())
-		f.close()
-		return p
 		
 	def default(self, args):
 		if '&' in args:
@@ -198,28 +188,20 @@ class MyShell(Cmd):
 		else:
 			"""checks if the users input contains a redirection token"""
 			"""wait for the process to end before returning to command line prompt"""
-			if (">"in args) and ("<" in args):
-				"""stdin and stdout, output and input redirection"""
-				p = self.stdin_stdout(args)
+			mode = self.io_parse(args)
+			if mode:
+				if mode == 'both':
+					"""stdin and stdout, output and input redirection"""
+					p = MyRedirection.stdin_stdout(args)
+				else:
+					"""parses the command line args"""
+					args = args.split()
+					mode_index = io[mode][0]
+					mode_index = args.index(mode_index)
+					file = args[mode_index + 1]
+					"""io dictionary provides the necessary function name to call"""
+					p = eval(io[mode][1]+'(args[:mode_index], file)')
 				p.wait()
-			elif "<" in args:
-				"""stdin, input redirection"""
-				args = args.split()
-				index_in = args.index("<")
-				file = args[index_in + 1]
-				p = self.stdin_file(args[:index_in], file)
-			elif ">>" in args:
-				"""output redirection, append to file if exists"""
-				args = args.split()
-				index_append = args.index(">>")
-				file = args[index_append + 1]
-				p = self.append_file(args[:index_append], file)
-			elif ">" in args:
-				"""stdout, output redirection"""
-				args = args.split()
-				index_out = args.index(">")
-				file = args[index_out + 1]
-				p = self.overwrite_file(args[:index_out], file)
 			else:
 				"""the process will execute and run"""
 				files = args.split()
@@ -236,4 +218,9 @@ if __name__ == '__main__':
 		prompt.batchfile()
 	prompt.theprompt()
 	print('Starting MyShell...')
-	prompt.cmdloop()
+	while True:
+		try:
+			prompt.cmdloop()
+		except Exception as e:
+			print('Error invalid operation')
+			continue
