@@ -1,4 +1,3 @@
-
 from cmd import Cmd
 from subprocess import Popen, PIPE, STDOUT
 import os, sys, subprocess, shlex
