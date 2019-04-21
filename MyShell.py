@@ -12,14 +12,12 @@ import os, sys, subprocess, shlex
 import time
 
 
-
 WHITE = '\033[37;0m'
 RED = '\033[31;1m'
 CYAN = '\033[36;1m'
 BOLD = '\033[37;1m'
 
-
-"""io mode as keys, providing token and necessary function"""
+"""io mode as keys, providing a tuple with token (index 0) and necessary function (index 1)"""
 io = {
 	'a':('>>', 'MyRedirection.append_file'),
 	'w': ('>', 'MyRedirection.overwrite_file'),
@@ -86,7 +84,6 @@ class MyShell(Cmd):
 			args = args.split(token)
 			file = args[-1].strip()
 			content = args[0].strip()
-			print(content)
 			with open(file, mode) as f:
 				f.write(content)
 			f.close()
@@ -202,15 +199,26 @@ class MyShell(Cmd):
 					"""io dictionary provides the necessary function name to call"""
 					p = eval(io[mode][1]+'(args[:mode_index], file)')
 				p.wait()
+			
 			else:
 				"""the process will execute and run"""
 				files = args.split()
 				programmename = files[0]
 				files = files[1:]
-				length = len(files)
-				for i in range(0,len(files)):
-					p = Popen([programmename, files[i]])
-					p.wait()
+				if not len(files):
+					try:
+						p = Popen([programmename])
+						p.wait()
+					except:
+						print("myshell: command not found: "+args)
+				elif len(files):
+					try:
+						length = len(files)
+						for i in range(len(files)):
+							p = Popen([programmename, files[i]])
+							p.wait()
+					except:
+						print("myshell: command not found: "+args)
 	
 if __name__ == '__main__':
 	prompt = MyShell()
@@ -218,9 +226,4 @@ if __name__ == '__main__':
 		prompt.batchfile()
 	prompt.theprompt()
 	print('Starting MyShell...')
-	while True:
-		try:
-			prompt.cmdloop()
-		except Exception as e:
-			print('Error invalid operation')
-			continue
+	prompt.cmdloop()
