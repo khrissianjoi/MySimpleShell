@@ -7,16 +7,18 @@
 """second (index 1) contains the output for redirection to a file"""
 
 help_dic = {
-	'cd' : ('print(RED + "CD <directory>" + RED + WHITE + " - cd command changes the current default directory to <directory>. If the <directory> argument is not present, report the current directory. If the directory does not exist an appropriate error should be reported." + WHITE)', 'CD - Accepts argument (eg. cd <directory>). Changes the current directory to supplied directory argument/<directory> by the user.'),
-	'echo' : ('print(RED+ "ECHO <comment>" +RED + WHITE +" - echo command displays <comment> on the display followed by a new line"+WHITE)','ECHO - Accepts arguments (eg. echo <comment>). Displays the <comment> supplied by the user.'),
-	'environ' : ('print(RED+"ENVIRON"+ RED + WHITE + " - environ command list all the environment strings" + WHITE)','ENVIRON - lists the environment strings'),
-	'clr' : ('print(RED + "CLR" + RED + WHITE + " - clears the shell" + WHITE)', 'CLR - Clears the shell screen'),
-	'quit': ('print(RED + "QUIT" + RED + WHITE + " - quit command raises the SystemExist and stops the execution of this script." + WHITE)','QUIT - Quits the shell'),
-	'pause' : ('print(RED + "PAUSE" + RED + WHITE + " - Pause command suspends the operation of the shell until ENTER is pressed by the user." + WHITE)', 'PAUSE -  Pause the operation of the shell, until ENTER is entered by the user.'),
-	'dir' : ('print(RED + "DIR <directory>" + RED + WHITE + " - dir command lists the contents of directory <directory>.")',  'DIR - Lists the contents of the current directory'),
-	'help' : ('print(RED + "HELP" +RED + WHITE + " - Accepts arugment (eg. help <command> / help(<command>)). If argument is supplied the description of that command is displayed. Otherwise, it lists all the commands, one by one (by pressing Enter). + WHITE")','HELP - Accepts arugment (eg. help <command> / help(<command>)). If argument is supplied the description of that command is displayed. Otherwise, it lists all the commands, one by one (by pressing Enter).')
+	'cd' : ('print(RED + "cd [DIR]" + RED + WHITE + " -Changes the current directory to [DIR]. If [DIR] is not provided, the current path is displayed." + WHITE)', 'cd [DIR] - Accepts argument (eg. cd <directory>). Changes the current directory to supplied directory argument/<directory> by the user.'),
+	'echo' : ('print(RED+ "echo [STRING]" +RED + WHITE +" - Displays the [STRING] on the terminal screen."+WHITE)','echo [STRING]- Displays the [STRING] on the terminal screen.'),
+	'environ' : ('print(RED+"ENVIRON"+ RED + WHITE + " - Lists the environment strings" + WHITE)','ENVIRON - Lists the environment strings'),
+	'clr' : ('print(RED + "clr" + RED + WHITE + " - Clears the screen" + WHITE)', 'clr - Clears the screen'),
+	'quit': ('print(RED + "QUIT" + RED + WHITE + " - Quits the shell." + WHITE)','quit - Quits the shell..'),
+	'pause' : ('print(RED + "PAUSE" + RED + WHITE + " - Pause the operation of the shell, until ENTER (interrupt signal) is entered by the user." + WHITE)', 'pause - Pause the operation of the shell, until ENTER (interrupt signal) is entered by the user.'),
+	'dir' : ('print(RED + "dir [FILE]" + RED + WHITE + " - Lists the contents of the [FILE] directory, if [FILE] not given, the contents of the current directory is listed")',  'dir [FILE] - Lists the contents of the [FILE] directory, if [FILE] not given, the contents of the current directory is listed')
 }
-
+WHITE = '\033[37;0m'
+RED = '\033[31;1m'
+CYAN = '\033[36;1m'
+BOLD = '\033[37;1m'
 class MyHelp():
 	"""Help command, called by MyShell class when user calls help <command> or help(<command>), the class then uses the"""
 	"""help_dic dictionary for an output for the appropriate help command description needed""" 
